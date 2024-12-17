@@ -1,14 +1,9 @@
 package tasks;
 
 import common.Person;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -21,73 +16,74 @@ P.P.S Здесь ваши правки необходимо прокоммент
  */
 public class Task9 {
 
-  private long count;
+  // private long count; используется только в одном методе, который ещё и публичный и присваивает в count 0
 
   // Костыль, эластик всегда выдает в топе "фальшивую персону".
   // Конвертируем начиная со второй
   public List<String> getNames(List<Person> persons) {
-    if (persons.size() == 0) {
+    if (persons.isEmpty()) { // улучшили читаемость
       return Collections.emptyList();
     }
-    persons.remove(0);
-    return persons.stream().map(Person::firstName).collect(Collectors.toList());
+    return persons.stream() // чуть улучшили читаемость и не изменяем исходный persons благодаря skip
+            .skip(1)
+            .map(Person::firstName)
+            .filter(Objects::nonNull) // избавились от null значений
+            .collect(Collectors.toList());
   }
 
   // Зачем-то нужны различные имена этих же персон (без учета фальшивой разумеется)
   public Set<String> getDifferentNames(List<Person> persons) {
-    return getNames(persons).stream().distinct().collect(Collectors.toSet());
+    return new HashSet<>(getNames(persons)); // короче и проще, нужные действия произведены в getNames
   }
 
   // Тут фронтовая логика, делаем за них работу - склеиваем ФИО
   public String convertPersonToString(Person person) {
-    String result = "";
-    if (person.secondName() != null) {
-      result += person.secondName();
-    }
+    String fullName = ""; // переименовали для читаемости
 
-    if (person.firstName() != null) {
-      result += " " + person.firstName();
-    }
+    // Написал корректную лямбда-функцию, чтобы не повторять код
+    BiFunction<String, String, String> concatIfNotNull = (String name, String value) -> {
+      String strToReturn = name;
+      if (value != null) {
+        strToReturn += name.isEmpty() ? value : " " + value;
+      }
+      return strToReturn;
+    };
 
-    if (person.secondName() != null) {
-      result += " " + person.secondName();
-    }
-    return result;
+    fullName = concatIfNotNull.apply(fullName, person.secondName());
+    fullName = concatIfNotNull.apply(fullName, person.firstName());
+    fullName = concatIfNotNull.apply(fullName, person.middleName());
+
+    return fullName;
   }
 
   // словарь id персоны -> ее имя
   public Map<Integer, String> getPersonNames(Collection<Person> persons) {
-    Map<Integer, String> map = new HashMap<>(1);
+    // Переименовал map для читаемости и использовал putIfAbsent вместо проверки отсутствия ключа
+    Map<Integer, String> personNames = new HashMap<>();
     for (Person person : persons) {
-      if (!map.containsKey(person.id())) {
-        map.put(person.id(), convertPersonToString(person));
-      }
+      personNames.putIfAbsent(person.id(), convertPersonToString(person));
     }
-    return map;
+    return personNames;
   }
 
   // есть ли совпадающие в двух коллекциях персоны?
   public boolean hasSamePersons(Collection<Person> persons1, Collection<Person> persons2) {
-    boolean has = false;
-    for (Person person1 : persons1) {
-      for (Person person2 : persons2) {
-        if (person1.equals(person2)) {
-          has = true;
-        }
-      }
-    }
-    return has;
+    // Переписали логику, асимптотика - линия
+    Set<Person> samePersons = new HashSet<>(persons1);
+    samePersons.retainAll(new HashSet<>(persons2));
+    return !samePersons.isEmpty();
   }
 
   // Посчитать число четных чисел
   public long countEven(Stream<Integer> numbers) {
-    count = 0;
-    numbers.filter(num -> num % 2 == 0).forEach(num -> count++);
-    return count;
+    // логику можно перенести сразу в return и использовать метод count вместо переменной и её инкремента
+    return numbers.filter(number -> number % 2 == 0).count();
   }
 
   // Загадка - объясните почему assert тут всегда верен
   // Пояснение в чем соль - мы перетасовали числа, обернули в HashSet, а toString() у него вернул их в сортированном порядке
+  // Вероятно, суть в том, что диапазон чисел не очень большой и хэш-функция будет класть числа в контейнеры, индексы
+  // которых будут равны самим числам, а equals итерируется в порядке контейнеров
   void listVsSet() {
     List<Integer> integers = IntStream.rangeClosed(1, 10000).boxed().collect(Collectors.toList());
     List<Integer> snapshot = new ArrayList<>(integers);

@@ -4,8 +4,8 @@ import common.Person;
 import common.PersonService;
 import common.PersonWithResumes;
 import common.Resume;
-import java.util.Collection;
-import java.util.Set;
+
+import java.util.*;
 
 /*
   Еще один вариант задачи обогащения
@@ -21,7 +21,29 @@ public class Task8 {
   }
 
   public Set<PersonWithResumes> enrichPersonsWithResumes(Collection<Person> persons) {
-    Set<Resume> resumes = personService.findResumes(Set.of());
-    return Set.of();
+    Map<Integer, Person> personWithId = new HashMap<>();
+    Map<Person, Set<Resume>> personWithResumesMap = new HashMap<>();
+    Set<Integer> personIds = new HashSet<>();
+    for (Person person : persons) {
+      personWithId.put(person.id(), person);
+      personIds.add(person.id());
+      personWithResumesMap.putIfAbsent(person, new HashSet<>());
+    }
+
+    Set<Resume> resumes = personService.findResumes(personIds);
+
+    for (Resume resume : resumes) {
+      Integer personId = resume.personId();
+      personWithResumesMap.computeIfAbsent(personWithId.get(personId), k -> new HashSet<>())
+              .add(resume);
+    }
+
+    Set<PersonWithResumes> personWithResumes = new HashSet<>();
+    personWithResumesMap.forEach((person, resumeSet) -> {
+      PersonWithResumes personWithResume = new PersonWithResumes(person, resumeSet);
+      personWithResumes.add(personWithResume);
+    });
+
+    return personWithResumes;
   }
 }
