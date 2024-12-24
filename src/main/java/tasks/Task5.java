@@ -3,9 +3,9 @@ package tasks;
 import common.ApiPersonDto;
 import common.Person;
 import common.PersonConverter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /*
 Задача 5
@@ -23,14 +23,8 @@ public class Task5 {
   }
 
   public List<ApiPersonDto> convert(List<Person> persons, Map<Integer, Integer> personAreaIds) {
-    List<ApiPersonDto> personsConverted = new ArrayList<>(persons.size());
-    for (Person person: persons) {
-      ApiPersonDto personConverted = personConverter.convert(person);
-      personConverted.setAreaId(personAreaIds.
-              get(Integer.valueOf(personConverted.getId())));
-      personsConverted.add(personConverted);
-    }
-
-    return personsConverted;
+    return persons.stream()
+            .map(person -> personConverter.convert(person, personAreaIds.get(person.id())))
+            .collect(Collectors.toList());
   }
 }

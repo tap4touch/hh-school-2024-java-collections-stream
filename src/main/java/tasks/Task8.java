@@ -6,6 +6,7 @@ import common.PersonWithResumes;
 import common.Resume;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /*
   Еще один вариант задачи обогащения
@@ -21,29 +22,16 @@ public class Task8 {
   }
 
   public Set<PersonWithResumes> enrichPersonsWithResumes(Collection<Person> persons) {
-    Map<Integer, Person> personWithId = new HashMap<>();
-    Map<Person, Set<Resume>> personWithResumesMap = new HashMap<>();
-    Set<Integer> personIds = new HashSet<>();
-    for (Person person : persons) {
-      personWithId.put(person.id(), person);
-      personIds.add(person.id());
-      personWithResumesMap.putIfAbsent(person, new HashSet<>());
-    }
+    Set<Integer> personIds = persons.stream()
+            .map(Person::id)
+            .collect(Collectors.toSet());
 
-    Set<Resume> resumes = personService.findResumes(personIds);
+    Map<Integer, List<Resume>> resumesWithId = personService.findResumes(personIds).stream()
+            .collect(Collectors.groupingBy(Resume::personId));
 
-    for (Resume resume : resumes) {
-      Integer personId = resume.personId();
-      personWithResumesMap.computeIfAbsent(personWithId.get(personId), k -> new HashSet<>())
-              .add(resume);
-    }
-
-    Set<PersonWithResumes> personWithResumes = new HashSet<>();
-    personWithResumesMap.forEach((person, resumeSet) -> {
-      PersonWithResumes personWithResume = new PersonWithResumes(person, resumeSet);
-      personWithResumes.add(personWithResume);
-    });
-
-    return personWithResumes;
+    return persons.stream()
+            .map(person -> new PersonWithResumes(person, new HashSet<>(resumesWithId
+                    .getOrDefault(person.id(), Collections.emptyList()))))
+            .collect(Collectors.toSet());
   }
 }

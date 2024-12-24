@@ -4,6 +4,7 @@ import common.Area;
 import common.Person;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /*
 Имеются
@@ -17,24 +18,13 @@ public class Task6 {
   public static Set<String> getPersonDescriptions(Collection<Person> persons,
                                                   Map<Integer, Set<Integer>> personAreaIds,
                                                   Collection<Area> areas) {
-    Map<Integer, String> personNames = new HashMap<>();
-    for (Person person : persons) {
-      personNames.put(person.id(), person.firstName());
-    }
+    Map<Integer, String> areaNames = areas.stream()
+            .collect(Collectors.toMap(Area::getId, Area::getName));
 
-    Map<Integer, String> areaNames = new HashMap<>();
-    for (Area area : areas) {
-      areaNames.put(area.getId(), area.getName());
-    }
-
-    Set<String> personDescriptions = new HashSet<>();
-    for (Integer name : personAreaIds.keySet()) {
-      for (Integer region : personAreaIds.get(name)) {
-        String nameAndRegion = personNames.get(name) + " - " + areaNames.get(region);
-        personDescriptions.add(nameAndRegion);
-      }
-    }
-
-    return personDescriptions;
+    return persons.stream()
+            .flatMap(person -> personAreaIds.get(person.id())
+                    .stream()
+                    .map(areaId -> person.firstName() + " - " + areaNames.get(areaId)))
+            .collect(Collectors.toSet());
   }
 }

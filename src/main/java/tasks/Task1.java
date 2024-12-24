@@ -2,8 +2,8 @@ package tasks;
 
 import common.Person;
 import common.PersonService;
-
 import java.util.*;
+import java.util.stream.Collectors;
 
 /*
 Задача 1
@@ -22,20 +22,11 @@ public class Task1 {
 
   public List<Person> findOrderedPersons(List<Integer> personIds) {
     Set<Person> persons = personService.findPersons(personIds); // Пусть размер составляет n
-    List<Person> orderedPersons = new ArrayList<>(personIds.size()); // Пусть размер составляет m
-    Map<Integer, Person> personsMap = new HashMap<>();
-
-    // O(n)
-    for (Person person: persons) {
-      personsMap.put(person.id(), person);
-    }
-
-    // O(m)
-    for (int i = 0; i < personIds.size(); i++) {
-      orderedPersons.add(i, personsMap.get(personIds.get(i)));
-    }
-
+    Map<Integer, Person> personsMap = persons.stream()
+                                              .collect(Collectors.toMap(Person::id, person -> person));
     // Итого асимптотика O(n + m), т.е. линия
-    return orderedPersons;
+    return personIds.stream()
+            .map(personsMap::get)
+            .collect(Collectors.toList());
   }
 }

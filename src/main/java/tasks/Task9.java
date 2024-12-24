@@ -3,7 +3,7 @@ package tasks;
 import common.Person;
 
 import java.util.*;
-import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -21,9 +21,6 @@ public class Task9 {
   // Костыль, эластик всегда выдает в топе "фальшивую персону".
   // Конвертируем начиная со второй
   public List<String> getNames(List<Person> persons) {
-    if (persons.isEmpty()) { // улучшили читаемость
-      return Collections.emptyList();
-    }
     return persons.stream() // чуть улучшили читаемость и не изменяем исходный persons благодаря skip
             .skip(1)
             .map(Person::firstName)
@@ -38,40 +35,32 @@ public class Task9 {
 
   // Тут фронтовая логика, делаем за них работу - склеиваем ФИО
   public String convertPersonToString(Person person) {
-    String fullName = ""; // переименовали для читаемости
-
-    // Написал корректную лямбда-функцию, чтобы не повторять код
-    BiFunction<String, String, String> concatIfNotNull = (String name, String value) -> {
-      String strToReturn = name;
-      if (value != null) {
-        strToReturn += name.isEmpty() ? value : " " + value;
-      }
-      return strToReturn;
-    };
-
-    fullName = concatIfNotNull.apply(fullName, person.secondName());
-    fullName = concatIfNotNull.apply(fullName, person.firstName());
-    fullName = concatIfNotNull.apply(fullName, person.middleName());
-
-    return fullName;
+    return Stream.of(person.secondName(), person.firstName(), person.middleName())
+            .filter(Objects::nonNull)
+            .filter(Predicate.not(String::isEmpty))
+            .collect(Collectors.joining(" "));
   }
 
   // словарь id персоны -> ее имя
   public Map<Integer, String> getPersonNames(Collection<Person> persons) {
-    // Переименовал map для читаемости и использовал putIfAbsent вместо проверки отсутствия ключа
-    Map<Integer, String> personNames = new HashMap<>();
-    for (Person person : persons) {
-      personNames.putIfAbsent(person.id(), convertPersonToString(person));
-    }
-    return personNames;
+    return persons.stream()
+            .collect(Collectors
+                    .toMap(Person::id, this::convertPersonToString, (prev_val, new_val) -> prev_val));
   }
 
   // есть ли совпадающие в двух коллекциях персоны?
   public boolean hasSamePersons(Collection<Person> persons1, Collection<Person> persons2) {
     // Переписали логику, асимптотика - линия
-    Set<Person> samePersons = new HashSet<>(persons1);
-    samePersons.retainAll(new HashSet<>(persons2));
-    return !samePersons.isEmpty();
+    Set<Person> firstPersonsSet = new HashSet<>(persons1);
+    boolean do_contain = false;
+    for (Person person : persons2) {
+      if (firstPersonsSet.contains(person)) {
+        do_contain = true;
+        break;
+      }
+    }
+
+    return do_contain;
   }
 
   // Посчитать число четных чисел
